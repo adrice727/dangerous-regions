@@ -30,6 +30,11 @@ interface EarthquakeSummary {
 }
 
 type SummariesByDate = { [key: string]: EarthquakeSummary[] };
+interface SummariesByDateWithMostRecent {
+  mostRecentDate: string;
+  summaries: SummariesByDate;
+}
+
 
 /** Helper functions */
 const normalize = R.pick(['id', 'geometry']);
@@ -52,7 +57,7 @@ function buildSummary(earthquake: Earthquake): EarthquakeSummary {
 /**
  * Group summaries by date
  */
-function groupByDate(summaries: EarthquakeSummary[]): SummariesByDate {
+function groupByDate(summaries: EarthquakeSummary[]): SummariesByDateWithMostRecent {
   const group = (acc: SummariesByDate, es: EarthquakeSummary): SummariesByDate => {
     if (!es.date) {
       return acc;
@@ -62,14 +67,20 @@ function groupByDate(summaries: EarthquakeSummary[]): SummariesByDate {
     }
     return { ...acc, [es.date]: [es] };
   };
-  return R.reduce(group, {}, summaries);
+  const groupedSummaries: SummariesByDate = R.reduce(group, {}, summaries);
+  const mostRecentDate = R.reduce((acc, date) => {
+    return moment(date).isAfter(acc) ? date : acc;
+  }, '2000-01-01', R.keys(groupedSummaries));
+
+  return { mostRecentDate, summaries: groupedSummaries };
+
 }
 
 /**
  * Build a collection of new summaries, grouped by date, to be added
  * to firebase.
  */
-async function buildNewSummaries(lastUpdate: string): Promise<SummariesByDate> {
+async function buildNewSummaries(lastUpdate: string): Promise<SummariesByDateWithMostRecent> {
   /**
    * We should change how we're building the `newEvents` list since
    * we may have Earthquakes that are missing a `time` property.
@@ -91,7 +102,8 @@ async function buildNewSummaries(lastUpdate: string): Promise<SummariesByDate> {
  */
 async function updateSummaries(date: string, summaries: EarthquakeSummary[], retryCount = 2): Promise<void> {
   try {
-    db.ref(`/earthquakes/${date}`).set(summaries);
+    await db.ref(`/earthquakes/${date}`).set(summaries);
+    console.info(`Updated earthquake summaries for ${date}`);
   } catch (error) {
     if (retryCount > 0) {
       /**
@@ -115,8 +127,10 @@ new CronJob('* 15 * * * *', async () => {
     const snapshot: DataSnapshot = await db.ref('/last-update').once('value');
     const lastUpdate = snapshot.val();
     if (lastUpdate) {
-      const newSummaries = await buildNewSummaries(lastUpdate);
-      // R.forEachObjIndexed((summaries, date) => updateSummaries(date, summaries));
+      const { summaries, mostRecentDate } = await buildNewSummaries(lastUpdate);
+      const update = async (date: string): Promise<void> => await updateSummaries(date, summaries[date]);
+      await Promise.all(R.keys(summaries).map(update, summaries));
+      await db.ref('/last-update').set(mostRecentDate);
     }
   } catch (error) {
     console.error('Failed to update earthquake data', error);

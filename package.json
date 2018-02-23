@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node ./bin/www",
-    "build": "echo \"Installing dependencies and compiling . . .\"npm i && tsc",
+    "build": "echo \"Installing dependencies and compiling . . . \" && npm i && tsc",
     "watch": "concurrently --kill-others \"tsc -w\" \"nodemon ./bin/www\""
   },
   "author": "adrice727@gmail.com",
