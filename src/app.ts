@@ -14,4 +14,8 @@ app.get('/regions', async (req: express.Request, res: express.Response, next: ex
   }
 });
 
+app.get('*', (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  res.send(`This page doesn't exist. Perhaps you're looking for '/regions'`);
+});
+
 export = app;
