@@ -1,0 +1,21 @@
+
+//module dependencies.
+var app = require("../dist/app");
+var debug = require("debug")("express:server");
+var http = require("http");
+
+//get port from environment and store in Express.
+var port = process.env.PORT || 8080;
+app.set("port", port);
+
+//create http server
+var server = http.createServer(app);
+
+//listen on provided ports
+server.listen(port);
+
+//add error handler
+server.on("error", error => console.error(error));
+
+//start listening on port
+server.on("listening", () => console.info(`Listening on port ${port}`));
