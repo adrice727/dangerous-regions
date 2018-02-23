@@ -6,7 +6,7 @@ declare module "*.json" {
 
 interface RegionStats {
   name: string;
-  earthquak_count: number;
+  earthquake_count: number;
   total_magnitude: number;
 }
 

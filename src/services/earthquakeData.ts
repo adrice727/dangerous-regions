@@ -12,7 +12,7 @@ type Earthquake = Feature<Point, EarthquakeProperties>;
 
 type EarthquakeCollection = FeatureCollection<Point, EarthquakeProperties>;
 
-interface SummaryProperties {
+interface EarthquakeSummaryProps {
   mag: number;
   place: string;
   time: number;
@@ -22,10 +22,10 @@ interface SummaryProperties {
   type: string;
 }
 
-interface EarthquakeSummary {
+export interface EarthquakeSummary {
   id?: string | number;
   geometry?: Point;
-  properties?: SummaryProperties;
+  properties?: EarthquakeSummaryProps;
   date: string | null;
 }
 
