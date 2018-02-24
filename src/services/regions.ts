@@ -4,6 +4,7 @@ import axios, { AxiosResponse } from 'axios';
 import { db, DataSnapshot } from './firebase';
 import { EarthquakeSummary } from './earthquakeData';
 import * as googleCredentialsJson from '../../config/google-credentials.json';
+import * as bingMapsKey from '../../config/bing-maps-key.json';
 
 type RegionSummaries = { [key: string]: EarthquakeSummary[] };
 type RegionScore = { count: number, totalMagnitude: number };
@@ -14,11 +15,13 @@ type GoogleMapsResponse = {
   results: { address_component: AddressComponent[] }[],
   errorMessage?: string,
 };
+type BingMapsResponse = {
+  statusCode: string,
+  resourceSets: { resources: { address: { countryRegion: string } }[] }[];
+};
 interface EarthquakeSummaryWithCountry extends EarthquakeSummary {
   country: string | null;
 }
-
-
 
 /**
  * Add a country property to an EarthquakeSummary.  If the summary is missing
@@ -27,33 +30,30 @@ interface EarthquakeSummaryWithCountry extends EarthquakeSummary {
  */
 async function addCountryToSummary(summary: EarthquakeSummary): Promise<EarthquakeSummaryWithCountry> {
   const coords = R.pathOr([], ['geometry', 'coordinates'], summary);
-  const apiKey: string = R.propOr('', 'mapsApiKey', googleCredentialsJson);
   if (!coords) {
     return { ...summary, country: null };
   }
   const [long, lat] = coords;
-  const gMapsUrl = (long: number, lat: number): string =>
-    `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${long}&key=${apiKey}`;
+
+  const apiKey: string = R.propOr('', 'mapsApiKey', bingMapsKey);
+  const bingMapsUrl = (long: number, lat: number): string =>
+    `http://dev.virtualearth.net/REST/v1/Locations/${lat},${long}&key=${apiKey}`;
   try {
     /**
      * We need to find the address component with the type of 'country'
      * https://goo.gl/E8e9mx
     */
-    const response: AxiosResponse<GoogleMapsResponse> = await axios(gMapsUrl(long, lat));
-    if (response.data.status !== 'OK') {
-      console.log(response.data.errorMessage);
+    const response: AxiosResponse<BingMapsResponse> = await axios(bingMapsUrl(long, lat));
+    if (response.data.statusCode !== 'OK') {
       return { ...summary, country: null };
     }
-    // All address components
-    const components: AddressComponent[] = R.flatten(R.map(R.prop('address_components'), response.data.results));
-    // Components with type of country
-    const countryComponents = R.filter((c: AddressComponent) => R.contains('country', R.prop('types', c)), components);
-    // The country or null
-    const country: string | null = R.propOr(null, 'long_name', R.head(countryComponents) || {});
+
+    const country =
+      R.pathOr(null, ['resourceSets', '0', 'resources', '0', 'address', 'countryRegion'], response.data);
 
     return { ...summary, country };
   } catch (error) {
-    console.log(error);
+    console.log(error)
     return { ...summary, country: null };
   }
 }
