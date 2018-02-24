@@ -37,33 +37,14 @@ async function addCountryToSummary(summary: EarthquakeSummary): Promise<Earthqua
     */
     const response: AxiosResponse<GoogleMapsResponse> = await axios(gMapsUrl(long, lat));
     if (response.data.status !== 'OK') {
-      console.log('no data');
       return { ...summary, country: null };
     }
     // All address components
     const components: AddressComponent[] = R.flatten(R.map(R.prop('address_components'), response.data.results));
     // Components with type of country
     const countryComponents = R.filter((c: AddressComponent) => R.contains('country', R.prop('types', c)), components);
-    console.log(countryComponents);
     // The country or null
     const country: string | null = R.propOr(null, 'long_name', R.head(countryComponents) || {});
-
-
-    // This gives us all country components
-    // R.filter(
-    //   R.compose(R.contains('country'), R.propOr('types')),
-    //   R.flatten(R.map(R.prop('address_components'), response.data.results)),
-    // );
-
-    // The first set of components seems to hold the most information
-    // const primaryAddressComponents = R.pathOr([], ['data', 'results', '0'], response);
-    // /**
-    //  * We need to find the address component with the type of 'country'
-    //  * https://goo.gl/E8e9mx
-    // */
-    // const addressComponents: AddressComponent[] = R.prop('address_components', primaryAddressComponents);
-    // const isCountryComponent = (component: AddressComponent) => R.contains('country', R.prop('types', component));
-    // const countryComponent: AddressComponent | undefined = R.find(isCountryComponent, addressComponents);
 
     return { ...summary, country };
   } catch (error) {
