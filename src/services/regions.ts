@@ -9,6 +9,7 @@ type RegionSummaries = { [key: string]: EarthquakeSummary[] };
 type RegionScore = { count: number, totalMagnitude: number };
 type ScoredRegionSummaries = { [key: string]: RegionScore };
 type AddressComponent = { long_name: string, types: string[] };
+type GoogleMapsResponse = { status: string, results: { address_component: AddressComponent[] }[] };
 interface EarthquakeSummaryWithCountry extends EarthquakeSummary {
   country: string | null;
 }
@@ -34,12 +35,16 @@ async function addCountryToSummary(summary: EarthquakeSummary): Promise<Earthqua
      * We need to find the address component with the type of 'country'
      * https://goo.gl/E8e9mx
     */
-    const response: AxiosResponse<{results: AddressComponent[][]}> = await axios(gMapsUrl(long, lat));
+    const response: AxiosResponse<GoogleMapsResponse> = await axios(gMapsUrl(long, lat));
+    if (response.data.status !== 'OK') {
+      console.log('no data');
+      return { ...summary, country: null };
+    }
     // All address components
     const components: AddressComponent[] = R.flatten(R.map(R.prop('address_components'), response.data.results));
     // Components with type of country
     const countryComponents = R.filter((c: AddressComponent) => R.contains('country', R.prop('types', c)), components);
-    console.log(countryComponents)
+    console.log(countryComponents);
     // The country or null
     const country: string | null = R.propOr(null, 'long_name', R.head(countryComponents) || {});
 
