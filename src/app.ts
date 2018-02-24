@@ -2,6 +2,7 @@
 
 import * as express from 'express';
 import { getMostDangerous } from './services/regions';
+import './services/earthquakeData';
 
 const app = express();
 
