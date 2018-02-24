@@ -29,7 +29,11 @@ function getDates(days: number): string[] {
 async function fetchSummaries(dates: string[]): Promise<EarthquakeSummary[]> {
   const queries = R.map((date: string) => db.ref(`/earthquakes/${date}`).once('value'), dates);
   const summaries = await Promise.all(queries);
-  return R.flatten(summaries.map((snapshot: DataSnapshot) => snapshot.val()));
+  return R.flatten(
+    summaries
+      .map((snapshot: DataSnapshot) => snapshot.val())
+      .filter(R.complement(R.isNil)),
+  );
 }
 
 /**
@@ -69,12 +73,12 @@ function scoreRegions(regionType: string, regions: RegionSummaries): RegionStats
 async function getMostDangerous({
   count = 3,
   days = 30,
-  regionType = 'timezone',
-}: { count?: number, days?: number, regionType?: string }): Promise<RegionStats[]> {
-  const dates = getDates(days);
+  region_type = 'timezone',
+}: { count?: number, days?: number, region_type?: string }): Promise<RegionStats[]> {
+  const dates = getDates(typeof days === 'string' ? parseInt(days, 10) : days);
   const summaries = await fetchSummaries(dates);
-  const groupedData = group(regionType, summaries);
-  const scored = scoreRegions(regionType, groupedData);
+  const groupedData = group(region_type, summaries);
+  const scored = scoreRegions(region_type, groupedData);
   const sorted = R.sort((a, b) => b.total_magnitude - a.total_magnitude, scored);
   return R.take(count, sorted);
 }
