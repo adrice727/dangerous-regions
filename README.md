@@ -2,13 +2,13 @@
 
 *Dangerous Regions* is built with TypeScript, Node.js, Express, and Firebase.
 
-####Install Dependencies and Compile:
+#### Install Dependencies and Compile:
 
 ```
 $ npm run build
 ```
 
-####Run:
+#### Run:
 ```
 $ npm run start
 ```
