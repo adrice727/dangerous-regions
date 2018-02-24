@@ -9,7 +9,11 @@ type RegionSummaries = { [key: string]: EarthquakeSummary[] };
 type RegionScore = { count: number, totalMagnitude: number };
 type ScoredRegionSummaries = { [key: string]: RegionScore };
 type AddressComponent = { long_name: string, types: string[] };
-type GoogleMapsResponse = { status: string, results: { address_component: AddressComponent[] }[] };
+type GoogleMapsResponse = {
+  status: string,
+  results: { address_component: AddressComponent[] }[],
+  errorMessage?: string,
+};
 interface EarthquakeSummaryWithCountry extends EarthquakeSummary {
   country: string | null;
 }
@@ -29,7 +33,7 @@ async function addCountryToSummary(summary: EarthquakeSummary): Promise<Earthqua
   }
   const [long, lat] = coords;
   const gMapsUrl = (long: number, lat: number): string =>
-    `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${long}`;
+    `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${long}&key=${apiKey}`;
   try {
     /**
      * We need to find the address component with the type of 'country'
@@ -37,6 +41,7 @@ async function addCountryToSummary(summary: EarthquakeSummary): Promise<Earthqua
     */
     const response: AxiosResponse<GoogleMapsResponse> = await axios(gMapsUrl(long, lat));
     if (response.data.status !== 'OK') {
+      console.log(response.data.errorMessage);
       return { ...summary, country: null };
     }
     // All address components
