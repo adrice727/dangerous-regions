@@ -38,7 +38,7 @@ async function addCountryToSummary(summary: EarthquakeSummary): Promise<Earthqua
      * We need to find the address component with the type of 'country'
      * https://goo.gl/E8e9mx
     */
-    const addressComponents: AddressComponent[] = R.prop('address_components', primaryAddressComponents);
+    const addressComponents: AddressComponent[] = R.propOr([], 'address_components', primaryAddressComponents);
     const isCountryComponent = (component: AddressComponent) => R.contains('country', R.prop('types', component));
     const countryComponent: AddressComponent | undefined = R.find(isCountryComponent, addressComponents);
 
