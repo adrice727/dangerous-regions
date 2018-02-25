@@ -112,7 +112,6 @@ async function buildNewSummaries(lastUpdate: string): Promise<SummariesByDateWit
  * Get the country for a set of coordinates. If not found, return null.
  */
 async function getCountryForCoords(lat: number, long: number, retryCount = 1): Promise<string | null> {
-  console.log(lat, long);
   const apiKey: string = R.propOr('', 'mapsApiKey', bingMapsKey);
   const bingMapsUrl = (long: number, lat: number): string =>
     `http://dev.virtualearth.net/REST/v1/Locations/${lat},${long}?key=${apiKey}`;
@@ -122,7 +121,6 @@ async function getCountryForCoords(lat: number, long: number, retryCount = 1): P
       return null;
     }
     const country = R.pathOr(null, ['resourceSets', '0', 'resources', '0', 'address', 'countryRegion'], response.data);
-    console.info(country);
     return country;
 
   } catch (error) {
@@ -187,7 +185,7 @@ function getCountriesAndUpdate(summariesByDate: SummariesByDate): void {
 
   R.forEach((date: string) => checkForCoords(date, R.values(summariesByDate[date])), R.keys(summariesByDate));
 
-  // Update the summaries missing coordinates (which seem to be few to none)
+  // Update the summaries that are missing coordinates (which seem to be few to none)
   R.forEach((date: string) => updateSummary(date, summariesMissingCoords[date]), R.keys(summariesMissingCoords));
 
   /**
@@ -216,14 +214,14 @@ function getCountriesAndUpdate(summariesByDate: SummariesByDate): void {
  * for the current date, and update the `last-update` property
  * in firebase.
  */
-new CronJob('* 300 * * * *', async () => {
+new CronJob('* 15 * * * *', async () => {
   try {
     const snapshot: DataSnapshot = await db.ref('/last-update').once('value');
     const lastUpdate = snapshot.val();
     if (lastUpdate) {
-      // const { summaries, mostRecentDate } = await buildNewSummaries(lastUpdate);
-      // await getCountriesAndUpdate(summaries);
-      // await db.ref('/last-update').set(mostRecentDate);
+      const { summaries, mostRecentDate } = await buildNewSummaries(lastUpdate);
+      await getCountriesAndUpdate(summaries);
+      await db.ref('/last-update').set(mostRecentDate);
     }
   } catch (error) {
     console.error('Failed to update earthquake data', error);
