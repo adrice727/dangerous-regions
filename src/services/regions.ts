@@ -4,50 +4,11 @@ import axios, { AxiosResponse } from 'axios';
 import { db, DataSnapshot } from './firebase';
 import { EarthquakeSummary } from './earthquakeData';
 import * as googleCredentialsJson from '../../config/google-credentials.json';
+import * as bingMapsKey from '../../config/bing-maps-key.json';
 
 type RegionSummaries = { [key: string]: EarthquakeSummary[] };
 type RegionScore = { count: number, totalMagnitude: number };
 type ScoredRegionSummaries = { [key: string]: RegionScore };
-type AddressComponent = { long_name: string, types: string[] };
-interface EarthquakeSummaryWithCountry extends EarthquakeSummary {
-  country: string | null;
-}
-
-
-
-/**
- * Add a country property to an EarthquakeSummary.  If the summary is missing
- * coordinates or we don't get an AddressComponent with a country, we set the
- * country to null.
- */
-async function addCountryToSummary(summary: EarthquakeSummary): Promise<EarthquakeSummaryWithCountry> {
-  const coords = R.pathOr([], ['geometry', 'coordinates'], summary);
-  const apiKey: string = R.propOr('', 'mapsApiKey', googleCredentialsJson);
-  if (!coords) {
-    return { ...summary, country: null };
-  }
-  const [long, lat] = coords;
-  const gMapsUrl = (long: number, lat: number): string =>
-    `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${long}&key=${apiKey}`;
-  try {
-    const response: AxiosResponse<{results: AddressComponent[][]}> = await axios(gMapsUrl(long, lat));
-
-    // The first set of components seems to hold the most information
-    const primaryAddressComponents = R.pathOr([], ['data', 'results', '0'], response);
-    /**
-     * We need to find the address component with the type of 'country'
-     * https://goo.gl/E8e9mx
-    */
-    const addressComponents: AddressComponent[] = R.propOr([], 'address_components', primaryAddressComponents);
-    const isCountryComponent = (component: AddressComponent) => R.contains('country', R.prop('types', component));
-    const countryComponent: AddressComponent | undefined = R.find(isCountryComponent, addressComponents);
-
-    return { ...summary, country: R.propOr(null, 'long_name', countryComponent) };
-  } catch (error) {
-    return { ...summary, country: null };
-  }
-}
-
 
 /**
  * Build an array of dates for which we need to fetch summaries,
@@ -79,17 +40,17 @@ async function fetchSummaries(dates: string[]): Promise<EarthquakeSummary[]> {
 /**
  * Group earthquake summaries by provided region type
  */
-async function group(regionType: string, summaries: EarthquakeSummary[]): Promise<RegionSummaries> {
+async function group(regionType: RegionType, summaries: EarthquakeSummary[]): Promise<RegionSummaries> {
 
   switch (regionType) {
     case 'timezone':
       return R.groupBy(R.pathOr('', ['properties', 'tz']), summaries);
     case 'country':
-      const summariesWithCountry = await Promise.all(R.map(addCountryToSummary, summaries));
-      // If country is missing (i.e. is null), let's omit the results
-      return R.omit(['null'], R.groupBy(R.propOr(null, 'country'), summariesWithCountry));
+      const summariesWithCountry = R.groupBy(R.pathOr(null, ['properties', 'country']), summaries);
+      // If country property is missing (i.e. is null), let's omit the results
+      return R.omit(['null'], summariesWithCountry);
     default:
-      return R.groupBy(R.pathOr('', ['properties', 'tz']), summaries);
+      return group('country', summaries);
   }
 }
 
@@ -119,7 +80,7 @@ async function getMostDangerous({
   count = 3,
   days = 30,
   region_type = 'timezone',
-}: { count?: number, days?: number, region_type?: string }): Promise<RegionStats[]> {
+}: { count?: number, days?: number, region_type?: RegionType }): Promise<RegionStats[]> {
   const dates = getDates(typeof days === 'string' ? parseInt(days, 10) : days);
   const summaries = await fetchSummaries(dates);
   const groupedData = await group(region_type, summaries);
