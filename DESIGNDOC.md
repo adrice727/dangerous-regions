@@ -6,7 +6,7 @@ We're current persisting data from USGS to Firebase by means of a Cron Job that 
 
 First, if we know exactly when the USGS data is updated, we can sync our Cron Job with the USGS updates so that the data in Firebase is always as update-to-date as possible.
 
-Second, we're currently updating the data for the current date every time the Cron Jobs runs. I'm not sure whether or not this needs to be done or not.  It depends on whether or not USGS updates records after initially publishing them. If so, the current method works is preferable.  If not, we can just push new records to Firebase.
+Second, we're currently updating the data for the current date every time the Cron Jobs runs. I'm not sure whether or not this needs to be done or not.  It depends on whether or not USGS updates records after initially publishing them. If so, the current method is preferable.  If not, we can just push new records to Firebase.
 
 ## Regions
 
@@ -20,6 +20,7 @@ There are several things that would need to be addressed before moving this to p
  - Do we want to store our data somewhere other than Firebase?
 	 - Do we expect to expand or change the information we're storing in the future?
 	 - Will we be running queries for specific information in the future?
+	 - Do we want to let our database handle sorting, scoring, etc.?
 	 - How might we structure the data taking into account the two points above?
  - We need to improve error handling.  How much fault tolerance do we want to build into the service? There is a small amount built in (i.e. retrying failed API calls and Firebase updates), but there's certainly more (or less) that can be done.  Also, how do we want to present errors to the user?
  - Tests!  What are our potential points of failure? What happens if one of our data sources changes?  What if we make a change that breaks something?  End-to-end tests would be helpful for these things, and should be fairly easy to write for this service.

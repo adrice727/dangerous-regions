@@ -124,7 +124,7 @@ async function getCountryForCoords(lat: number, long: number, retryCount = 1): P
     return country;
 
   } catch (error) {
-    console.error('Bing Maps API Error', error.message);
+    console.error('Bing Maps API Error', error);
     if (retryCount > 0) {
       return getCountryForCoords(lat, long, retryCount - 1);
     }
@@ -205,7 +205,7 @@ function getCountriesAndUpdate(summariesByDate: SummariesByDate): void {
     if (R.isEmpty(summariesWithCoords)) {
       clearInterval(intervalId);
     }
-  }, 1500);
+  }, 2000);
 
 }
 
