@@ -10,7 +10,7 @@ $ npm run build
 
 #### Config:
 
-You will need to set up a Firebase instance and save your [service account credentials](https://firebase.google.com/docs/admin/setup) as `firebase-credentials.json` in the `config` directory.  You will also need to update the `databaseURL` in `services/firebase.ts` to point to your Firebase instance.
+You will need to set up a Firebase instance and save your [service account credentials](https://firebase.google.com/docs/admin/setup) as `firebase-credentials.json` in the `config` directory.
 
 You will also need a `bing-maps-key.json` file in `config`.  This JSON file should have a single key, `mapsApiKey`, which points to your [Bing Maps API Key](https://msdn.microsoft.com/en-us/library/ff428642.aspx).
 
