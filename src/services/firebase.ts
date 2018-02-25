@@ -4,7 +4,7 @@ import * as serviceAccount from '../../config/firebase-credentials.json';
 type DataSnapshot = firebaseAdmin.database.DataSnapshot;
 
 firebaseAdmin.initializeApp({
-  databaseURL: 'https://danger-zones.firebaseio.com',
+  databaseURL: 'https://danger-reg.firebaseio.com',
   credential: firebaseAdmin.credential.cert(serviceAccount as firebaseAdmin.ServiceAccount),
 });
 

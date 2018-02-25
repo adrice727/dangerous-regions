@@ -3,6 +3,7 @@ declare module "*.json" {
   export default value;
 }
 
+declare type RegionType = 'timezone' | 'country';
 
 interface RegionStats {
   name: string;
