@@ -29,19 +29,19 @@ function getDates(days: number): string[] {
  */
 async function fetchSummaries(dates: string[]): Promise<EarthquakeSummary[]> {
   const queries = R.map((date: string) => db.ref(`/earthquakes/${date}`).once('value'), dates);
-  const summaries = await Promise.all(queries);
-  return R.flatten(
-    summaries
-      .map((snapshot: DataSnapshot) => snapshot.val())
-      .filter(R.complement(R.isNil)),
-  );
+  const summarySnapshots = await Promise.all(queries);
+  const summariesArray = summarySnapshots
+    .map((snapshot: DataSnapshot) => snapshot.val())
+    .filter(R.complement(R.isNil))
+    .map(R.values);
+
+  return R.flatten(summariesArray);
 }
 
 /**
  * Group earthquake summaries by provided region type
  */
 async function group(regionType: RegionType, summaries: EarthquakeSummary[]): Promise<RegionSummaries> {
-
   switch (regionType) {
     case 'timezone':
       return R.groupBy(R.pathOr('', ['properties', 'tz']), summaries);
