@@ -43,18 +43,18 @@ might return the following JSON results:
 [
   {
     "name": "country United States",
-    "earthquake_count": 16,
-    "total_magnitude": 22.06
+    "earthquake_count": 334,
+    "total_magnitude": 401.69
   },
   {
-    "name": "country Indonesia",
-    "earthquake_count": 6,
-    "total_magnitude": 12.4
+    "name": "country Japan",
+    "earthquake_count": 2,
+    "total_magnitude": 9.6
   },
   {
-    "name": "country Chile",
-    "earthquake_count": 4,
-    "total_magnitude": 6.1
+    "name": "country Mexico",
+    "earthquake_count": 3,
+    "total_magnitude": 8.7
   }
 ]
 ```
@@ -64,19 +64,19 @@ If we define regions by `timezone`, our results might look like:
 ```javascript
 [
   {
-    "name": "timezone -300",
-    "earthquake_count": 11,
-    "total_magnitude": 19.16
+    "name": "timezone -480",
+    "earthquake_count": 375,
+    "total_magnitude": 414.44
   },
   {
-    "name": "timezone -1000",
-    "earthquake_count": 9,
-    "total_magnitude": 9.4
+    "name": "timezone -540",
+    "earthquake_count": 82,
+    "total_magnitude": 138.6
   },
   {
-    "name": "timezone 500",
-    "earthquake_count": 5,
-    "total_magnitude": 7.1
+    "name": "timezone -420",
+    "earthquake_count": 70,
+    "total_magnitude": 86.38
   }
 ]
 ```
