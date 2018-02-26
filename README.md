@@ -14,6 +14,8 @@ You will need to set up a Firebase instance and save your [service account crede
 
 You will also need a `bing-maps-key.json` file in `config`.  This JSON file should have a single key, `mapsApiKey`, which points to your [Bing Maps API Key](https://msdn.microsoft.com/en-us/library/ff428642.aspx).
 
+*The first time the service runs, it will populate Firebase with data from USGS. This may take ~2 hours since we need to space out our calls to the Bing Maps API in order to avoid rate limits.*
+
 #### Run:
 ```
 $ npm run start

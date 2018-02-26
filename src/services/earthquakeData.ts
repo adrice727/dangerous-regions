@@ -191,7 +191,7 @@ function getCountriesAndUpdate(summariesByDate: SummariesByDate): void {
   /**
    * Since we need to space out our Maps API calls to avoid rate limiting issues,
    * we'll update each summary at an interval.  This will also work if we ever need to
-   * repopulate the database from scratch (as I found out).
+   * repopulate the database from scratch.
    *
    * Footnote: Bing Maps has higher rate limits and more sanely structured results
    * than Google Maps. Who knew?
@@ -217,7 +217,7 @@ function getCountriesAndUpdate(summariesByDate: SummariesByDate): void {
 new CronJob('* 15 * * * *', async () => {
   try {
     const snapshot: DataSnapshot = await db.ref('/last-update').once('value');
-    const lastUpdate = snapshot.val();
+    const lastUpdate = snapshot.val() || '2000-01-01';
     if (lastUpdate) {
       const { summaries, mostRecentDate } = await buildNewSummaries(lastUpdate);
       await getCountriesAndUpdate(summaries);
