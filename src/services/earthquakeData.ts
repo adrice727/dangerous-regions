@@ -5,7 +5,7 @@ import { GeoJsonObject, FeatureCollection, GeometryObject, Point, Feature } from
 import { CronJob } from 'cron';
 import * as bingMapsKey from '../../config/bing-maps-key.json';
 import { db, DataSnapshot } from './firebase';
-import { utcToDateString } from '../util';
+import { utcToDateString, getDatesAfter } from '../util';
 import { QuerySnapshot, DocumentSnapshot } from '@google-cloud/firestore';
 
 /** Types */
@@ -31,7 +31,9 @@ export interface EarthquakeSummary {
   date: string | null;
 }
 
-type SummariesByDate = { [key: string]: { [key: string]: EarthquakeSummary } };
+type KeysByDate = { [key: string]: string[] };
+type SummariesById = { [key: string]: EarthquakeSummary };
+type SummariesByDate = { [key: string]: SummariesById };
 interface SummariesByDateWithMostRecent {
   mostRecentDate: string;
   summaries: SummariesByDate;
@@ -51,7 +53,6 @@ interface EarthquakeSummaryWithCountry extends EarthquakeSummary {
 const normalize = R.pick(['id', 'geometry']);
 const getTime: ({ }) => (number | undefined) = R.path(['properties', 'time']);
 const getSummaryProps = R.pick(['mag', 'place', 'time', 'updated', 'tz', 'magType', 'type']);
-const geoDataUrl = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_month.geojson';
 const extractDateString = R.compose(utcToDateString, getTime);
 
 /**
@@ -66,9 +67,9 @@ function buildSummary(earthquake: Earthquake): EarthquakeSummary {
 }
 
 /**
- * Group summaries by date
+ * Group summaries by date, omiting any events that already exist in Firebase
  */
-function groupByDate(summaries: EarthquakeSummary[]): SummariesByDateWithMostRecent {
+function groupByDate(summaries: EarthquakeSummary[], existingKeys: KeysByDate): SummariesByDateWithMostRecent {
   const group = (acc: SummariesByDate, es: EarthquakeSummary): SummariesByDate => {
     if (!es.date) {
       return acc;
@@ -78,7 +79,13 @@ function groupByDate(summaries: EarthquakeSummary[]): SummariesByDateWithMostRec
     }
     return { ...acc, [es.date]: { [es.id]: es } };
   };
-  const groupedSummaries: SummariesByDate = R.reduce(group, {}, summaries);
+
+  const omitExistingRecords = R.mapObjIndexed((summaries: SummariesById, date: string) => {
+    return R.omit(existingKeys[date], summaries);
+  });
+
+  const groupedSummaries: SummariesByDate = omitExistingRecords(R.reduce(group, {}, summaries));
+
   const mostRecentDate = R.reduce((acc, date) => {
     return moment(date).isAfter(acc) ? date : acc;
   }, '2000-01-01', R.keys(groupedSummaries));
@@ -91,18 +98,15 @@ function groupByDate(summaries: EarthquakeSummary[]): SummariesByDateWithMostRec
  * Build a collection of new summaries, grouped by date, to be added
  * to firebase.
  */
-async function buildNewSummaries(lastUpdate: string): Promise<SummariesByDateWithMostRecent> {
-  /**
-   * We should change how we're building the `newEvents` list since
-   * we may have Earthquakes that are missing a `time` property.
-   */
+async function buildNewSummaries(lastUpdate: string, existingKeys: KeysByDate): Promise<SummariesByDateWithMostRecent> {
+  const geoDataUrl = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_month.geojson';
   const beforeLastUpdate = (date: string | null): boolean =>
     date ? moment(date).isBefore(lastUpdate) : false;
   try {
     const response: AxiosResponse<EarthquakeCollection> = await axios.get(geoDataUrl);
     const isNewEvent = (e: Earthquake): boolean => !beforeLastUpdate(extractDateString(e));
     const newEventSummaries = R.takeWhile(isNewEvent, response.data.features).map(buildSummary);
-    return groupByDate(newEventSummaries);
+    return groupByDate(newEventSummaries, existingKeys);
   } catch (error) {
     throw new Error('Failed to fetch regions data');
   }
@@ -120,8 +124,7 @@ async function getCountryForCoords(lat: number, long: number, retryCount = 1): P
     if (response.statusText !== 'OK') {
       return null;
     }
-    const country = R.pathOr(null, ['resourceSets', '0', 'resources', '0', 'address', 'countryRegion'], response.data);
-    return country;
+    return R.pathOr(null, ['resourceSets', '0', 'resources', '0', 'address', 'countryRegion'], response.data);
 
   } catch (error) {
     console.error('Bing Maps API Error', error);
@@ -164,7 +167,7 @@ async function updateWithCountry(date: string, summary: EarthquakeSummary, lat: 
  * with country information before being saved in Firebase. Those without can be saved immediately.
  */
 function getCountriesAndUpdate(summariesByDate: SummariesByDate): void {
-  type SummaryWithCoords = {date: string, summary: EarthquakeSummary, lat: number, long: number };
+  type SummaryWithCoords = { date: string, summary: EarthquakeSummary, lat: number, long: number };
   const summariesMissingCoords: SummariesByDate = {};
   const summariesWithCoords: SummaryWithCoords[] = [];
 
@@ -199,7 +202,7 @@ function getCountriesAndUpdate(summariesByDate: SummariesByDate): void {
   const intervalId = setInterval(() => {
     const next = summariesWithCoords.shift();
     if (next) {
-      const { date, summary, lat, long  } = next;
+      const { date, summary, lat, long } = next;
       updateWithCountry(date, summary, lat, long);
     }
     if (R.isEmpty(summariesWithCoords)) {
@@ -207,6 +210,30 @@ function getCountriesAndUpdate(summariesByDate: SummariesByDate): void {
     }
   }, 2000);
 
+}
+
+/**
+ * Fetch earthquake summaries for the given dates.
+ */
+async function fetchSummaries(dates: string[], keysOnly: boolean = true): Promise<EarthquakeSummary[]> {
+  const queries = R.map((date: string) => db.ref(`/earthquakes/${date}`).once('value'), dates);
+  const summarySnapshots = await Promise.all(queries);
+  const summariesArray = summarySnapshots
+    .map((snapshot: DataSnapshot) => snapshot.val())
+    .filter(R.complement(R.isNil))
+    .map(R.values);
+
+  return R.flatten(summariesArray);
+}
+
+/**
+ * Fetch all existing keys (i.e. Earthquake Ids) for the provided dates
+ */
+async function fetchExistingKeys(dates: string[]): Promise<KeysByDate> {
+  const queries = R.map((date: string) => db.ref(`/earthquakes/${date}`).once('value'), dates);
+  const summarySnapshots = await Promise.all(queries);
+  const keysForDate = (snapshot: DataSnapshot) => ({ [snapshot.key || 'null']: R.keys(snapshot.val()) });
+  return R.mergeAll(R.map(keysForDate, summarySnapshots));
 }
 
 /**
@@ -219,7 +246,9 @@ new CronJob('* 15 * * * *', async () => {
     const snapshot: DataSnapshot = await db.ref('/last-update').once('value');
     const lastUpdate = snapshot.val() || '2000-01-01';
     if (lastUpdate) {
-      const { summaries, mostRecentDate } = await buildNewSummaries(lastUpdate);
+      const dates = getDatesAfter(lastUpdate);
+      const existingKeys = await fetchExistingKeys(dates);
+      const { summaries, mostRecentDate } = await buildNewSummaries(lastUpdate, existingKeys);
       await getCountriesAndUpdate(summaries);
       await db.ref('/last-update').set(mostRecentDate);
       console.info(`last-update set to ${mostRecentDate}`);
@@ -229,4 +258,5 @@ new CronJob('* 15 * * * *', async () => {
   }
 }, undefined, true, 'America/Los_Angeles', null, true);
 
-export { Earthquake, EarthquakeCollection };
+
+export { Earthquake, EarthquakeCollection, fetchSummaries };

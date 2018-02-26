@@ -6,7 +6,7 @@ We're current persisting data from USGS to Firebase by means of a Cron Job that 
 
 First, if we know exactly when the USGS data is updated, we can sync our Cron Job with the USGS updates so that the data in Firebase is always as update-to-date as possible.
 
-Second, we're currently updating the data for the current date every time the Cron Jobs runs. I'm not sure whether or not this needs to be done or not.  It depends on whether or not USGS updates records after initially publishing them. If so, the current method is preferable.  If not, we can just push new records to Firebase.
+Second, we're never updating the data for events that already exist in our database. But, should we be?  If USGS updates records after initially publishing them, we should be updating our records as well.  If not, we can just push new records to Firebase as we're currently doing.
 
 ## Regions
 

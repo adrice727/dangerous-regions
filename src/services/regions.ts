@@ -2,41 +2,14 @@ import * as R from 'ramda';
 import * as moment from 'moment';
 import axios, { AxiosResponse } from 'axios';
 import { db, DataSnapshot } from './firebase';
-import { EarthquakeSummary } from './earthquakeData';
+import { fetchSummaries, EarthquakeSummary } from './earthquakeData';
+import { getDates } from '../util';
 import * as googleCredentialsJson from '../../config/google-credentials.json';
 import * as bingMapsKey from '../../config/bing-maps-key.json';
 
 type RegionSummaries = { [key: string]: EarthquakeSummary[] };
 type RegionScore = { count: number, totalMagnitude: number };
 type ScoredRegionSummaries = { [key: string]: RegionScore };
-
-/**
- * Build an array of dates for which we need to fetch summaries,
- * based on the number of days.
- */
-function getDates(days: number): string[] {
-  let currentDate = moment();
-  moment().subtract(1, 'day');
-  return R.range(0, days).map(() => {
-    const dateString = currentDate.format('YYYY-MM-DD');
-    currentDate = currentDate.subtract(1, 'day');
-    return dateString;
-  });
-}
-
-/**
- * Fetch earthquake summaries for the given dates.
- */
-async function fetchSummaries(dates: string[]): Promise<EarthquakeSummary[]> {
-  const queries = R.map((date: string) => db.ref(`/earthquakes/${date}`).once('value'), dates);
-  const summarySnapshots = await Promise.all(queries);
-  const summariesArray = summarySnapshots
-    .map((snapshot: DataSnapshot) => snapshot.val())
-    .filter(R.complement(R.isNil))
-    .map(R.values);
-
-  return R.flatten(summariesArray);
-}
 
 /**
  * Group earthquake summaries by provided region type
