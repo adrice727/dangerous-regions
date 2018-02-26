@@ -35,26 +35,26 @@ You can access the service at `localhost:8080/regions`.  This endpoint accepts t
 			- `timezone`
 
 As an example, the following query:
-```html
+```
 localhost:8080/regions?days=10&count=3&region_type=country
 ```
 might return the following JSON results:
 ```javascript
 [
   {
-    "name": "country United States",
-    "earthquake_count": 334,
-    "total_magnitude": 401.69
-  },
-  {
-    "name": "country Japan",
-    "earthquake_count": 2,
-    "total_magnitude": 9.6
+    "name": "country Papua New Guinea",
+    "earthquake_count": 28,
+    "total_magnitude": 7.53
   },
   {
     "name": "country Mexico",
-    "earthquake_count": 3,
-    "total_magnitude": 8.7
+    "earthquake_count": 12,
+    "total_magnitude": 7.22
+  },
+  {
+    "name": "country Japan",
+    "earthquake_count": 6,
+    "total_magnitude": 5.80
   }
 ]
 ```
@@ -64,19 +64,19 @@ If we define regions by `timezone`, our results might look like:
 ```javascript
 [
   {
-    "name": "timezone -480",
-    "earthquake_count": 375,
-    "total_magnitude": 414.44
+    "name": "timezone 600",
+    "earthquake_count": 35,
+    "total_magnitude": 7.54
   },
   {
-    "name": "timezone -540",
-    "earthquake_count": 82,
-    "total_magnitude": 138.6
+    "name": "timezone -360",
+    "earthquake_count": 55,
+    "total_magnitude": 7.26
   },
   {
-    "name": "timezone -420",
-    "earthquake_count": 70,
-    "total_magnitude": 86.38
+    "name": "timezone 540",
+    "earthquake_count": 26,
+    "total_magnitude": 6.34
   }
 ]
 ```

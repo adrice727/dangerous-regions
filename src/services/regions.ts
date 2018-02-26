@@ -61,7 +61,10 @@ function scoreRegions(regionType: string, regions: RegionSummaries): RegionStats
 
   const calculateTotalMagnitude = (summaries: EarthquakeSummary[]): RegionScore => {
     const count = summaries.length;
-    const totalMagnitude = R.sum(R.map(R.pathOr(0, ['properties', 'mag']), summaries));
+    const getMagnitude = R.pathOr(0, ['properties', 'mag']);
+    const power10 = (mag: number) => Math.pow(10, mag);
+    const calcEnergy = R.compose(power10, getMagnitude);
+    const totalMagnitude = parseFloat(Math.log10(R.sum(R.map(calcEnergy, summaries))).toFixed(2));
     return { count, totalMagnitude };
   };
 
@@ -79,7 +82,7 @@ function scoreRegions(regionType: string, regions: RegionSummaries): RegionStats
 async function getMostDangerous({
   count = 3,
   days = 30,
-  region_type = 'timezone',
+  region_type = 'country',
 }: { count?: number, days?: number, region_type?: RegionType }): Promise<RegionStats[]> {
   const dates = getDates(typeof days === 'string' ? parseInt(days, 10) : days);
   const summaries = await fetchSummaries(dates);
