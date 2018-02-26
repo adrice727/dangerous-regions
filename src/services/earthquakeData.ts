@@ -222,6 +222,7 @@ new CronJob('* 15 * * * *', async () => {
       const { summaries, mostRecentDate } = await buildNewSummaries(lastUpdate);
       await getCountriesAndUpdate(summaries);
       await db.ref('/last-update').set(mostRecentDate);
+      console.info(`last-update set to ${mostRecentDate}`);
     }
   } catch (error) {
     console.error('Failed to update earthquake data', error);
