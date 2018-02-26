@@ -21,6 +21,6 @@ There are several things that would need to be addressed before moving this to p
 	 - Do we expect to expand or change the information we're storing in the future?
 	 - Will we be running queries for specific information in the future?
 	 - Do we want to let our database handle sorting, scoring, etc.?
-	 - How might we structure the data taking into account the two points above?
+	 - How might we structure the data taking into account the three above points (questions)?
  - We need to improve error handling.  How much fault tolerance do we want to build into the service? There is a small amount built in (i.e. retrying failed API calls and Firebase updates), but there's certainly more (or less) that can be done.  Also, how do we want to present errors to the user?
  - Tests!  What are our potential points of failure? What happens if one of our data sources changes?  What if we make a change that breaks something?  End-to-end tests would be helpful for these things, and should be fairly easy to write for this service.
